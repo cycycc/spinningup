@@ -33,12 +33,19 @@ def mlp(sizes, activation, output_activation=nn.Identity):
         (Use an nn.Sequential module.)
 
     """
-    #######################
-    #                     #
-    #   YOUR CODE HERE    #
-    #                     #
-    #######################
-    pass
+
+    layers = []
+    sizes = list(sizes)
+
+    for i in range(len(sizes)):
+        if i < len(sizes) - 1:
+            layers.append(nn.Linear(sizes[i], sizes[i+1]))
+            if i != len(sizes) - 2:
+                layers.append(activation())
+            else:
+                layers.append(output_activation())
+
+    return nn.Sequential(*layers)
 
 class DiagonalGaussianDistribution:
 
@@ -52,12 +59,12 @@ class DiagonalGaussianDistribution:
             A PyTorch Tensor of samples from the diagonal Gaussian distribution with
             mean and log_std given by self.mu and self.log_std.
         """
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
-        pass
+
+        sample = np.random.multivariate_normal(mean=self.mu,
+                                               cov=torch.diag(torch.pow(torch.exp(self.log_std), 2)),
+                                               size=1  # batch size
+                                               )
+        return torch.from_numpy(sample)
 
     #================================(Given, ignore)==========================================#
     def log_prob(self, value):
@@ -79,15 +86,27 @@ class MLPGaussianActor(nn.Module):
         Make log_std a PyTorch Parameter with the same shape as the action vector, 
         independent of observations, initialized to [-0.5, -0.5, ..., -0.5].
         (Make sure it's trainable!)
+
+        Args:
+            obs_dim: Dimension of observations
+
+            act_dim: Dimension of actions
+
+            hidden_sizes: Sized of hidden layers for action network MLP
+            
+            activation: Activation function for all layers except last
         """
-        #######################
-        #                     #
-        #   YOUR CODE HERE    #
-        #                     #
-        #######################
-        # self.log_std = 
-        # self.mu_net = 
-        pass 
+
+        """
+        print('obs_dim', obs_dim)  # 4
+        print('act_dim', act_dim)  # 1
+        print('hidden_sizes', hidden_sizes)  ## (64,)
+        """
+
+        sizes = [obs_dim] + list(hidden_sizes) + [act_dim]
+
+        self.log_std = nn.Parameter(torch.ones(act_dim) * (-0.5))
+        self.mu_net = mlp(sizes, activation)
 
     #================================(Given, ignore)==========================================#
     def forward(self, obs, act=None):
